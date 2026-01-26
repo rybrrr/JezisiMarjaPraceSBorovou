@@ -17,7 +17,7 @@ namespace HraosPokus2.ViewModel
         #region Data Binding
         public ObservableCollection<FieldViewModel> Fields { get; set; }
 
-        public int GridSize => (int)Math.Sqrt(Cards.Count);
+        public int GridSize => (int)Math.Sqrt(Fields.Count);
 
         private int _score;
         public int Score
