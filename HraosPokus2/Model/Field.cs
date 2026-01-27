@@ -8,13 +8,14 @@ namespace HraosPokus2.Model
 {
     internal class Field
     {
-        public bool isMine { get; }
-        public int NeighboringMines { get; }
-
-        public Field(bool isMine, int neighboringMines)
+        public static readonly (int dx, int dy)[] NeighborOffsets =
         {
-            this.isMine = isMine;
-            NeighboringMines = neighboringMines;
-        }
+            (-1, -1), (0, -1), (1, -1),
+            (-1,  0),          (1,  0),
+            (-1,  1), (0,  1), (1,  1),
+        };
+
+        public bool IsMine { get; set; }
+        public int NeighboringMines { get; set; }
     }
 }

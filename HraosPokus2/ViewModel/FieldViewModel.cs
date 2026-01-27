@@ -33,5 +33,6 @@ namespace HraosPokus2.ViewModel
         }
 
         public int NeighboringMines => Model.NeighboringMines;
+        public bool IsMine => Model.IsMine;
     }
 }
