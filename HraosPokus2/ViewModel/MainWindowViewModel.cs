@@ -77,6 +77,15 @@ namespace HraosPokus2.ViewModel
             return mines;
         }
 
+        private bool AreAllPossibleFieldsOpen()
+        {
+            foreach (FieldViewModel field in Fields)
+                if (!field.IsMine && !field.IsOpened)
+                    return false;
+
+            return true;
+        }
+
         private void ReassignMines(int mineCount)
         {
             IEnumerable<int> newMinesArray = Randomization<int>.PickDistinct(Fields.Count, mineCount);
@@ -146,9 +155,12 @@ namespace HraosPokus2.ViewModel
                 return; // Already opened
 
             if (field.Model.IsMine)
-                OpenAllFields();
+                OpenAllFields();    // Lose
 
             OpenAllMineFreeFields(Fields.IndexOf(field));
+
+            if (AreAllPossibleFieldsOpen())
+                OpenAllFields();    // Win
         }
 
         private void FieldFlagged(FieldViewModel field)
