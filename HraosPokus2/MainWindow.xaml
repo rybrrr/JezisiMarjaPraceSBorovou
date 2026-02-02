@@ -1,66 +1,249 @@
 ﻿<Window x:Class="HraosPokus2.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:HraosPokus2"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid >
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="30*"/>
-            <ColumnDefinition Width="70*"/>
-        </Grid.ColumnDefinitions>
+        Title="Minesweeper"
+        Height="600" Width="520"
+        Background="#C0C0C0"
+        WindowStartupLocation="CenterScreen">
 
-        <StackPanel>
-            <Label FontSize="50" HorizontalAlignment="Center">Pexeso</Label>
-            <Button Margin="20 10"  Command="{Binding StartCommand}" >Start Game</Button>
-            <Label HorizontalAlignment="Center">Score:</Label>
-            <Label HorizontalAlignment="Center" FontSize="40" Foreground="Green" Content="{Binding Score}"/>
-        </StackPanel>
+    <Window.Resources>
+        <!-- Ve VievModel udělej tyto commandy: MinesLeft, TimeSeconds, Rows, Columns, Tiles, ResetCommand, TileLeftClickCommand, TileRightClickCommand -->
 
-        <ItemsControl ItemsSource="{Binding Cards}" Grid.Column="1">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <UniformGrid Rows="{Binding GridSize}"
-                         Columns="{Binding GridSize}" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+        <Style x:Key="CounterText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#FF2A0000"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
 
-            <!--Šablona pro jednotlivé karty (budou to obyčejná tlačítka s TextBlockem uvnitř) -->
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <!--Command: co se provede po kliknutí na tlačítko karty-->
-                    <!--CommandParametr: předá se kliknutá karta jako parametr příkazu -->
-                    <Button 
-                    Command="{Binding DataContext.CardClickCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                    CommandParameter="{Binding}" 
-                    FontSize="24"
-                    Margin="5">
+        <Style x:Key="CounterBox" TargetType="Border">
+            <Setter Property="Background" Value="#1A0000"/>
+            <Setter Property="BorderBrush" Value="#7A7A7A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,2"/>
+        </Style>
 
-                        <TextBlock Text="{Binding Id}">
-                            <TextBlock.Style>
-                                <!-- Stylování pro karty v různých situacích -->
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Hidden"/>
-                                    <!-- Defaultně je číslo karty zakryté -->
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsFlipped}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                            <!-- Když je karta otočená, číslo vidíme -->
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsMatched}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                            <!-- Když už jsme našli dvojici, karta zůstává otočená -->
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
 
-                    </Button>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <Style x:Key="BevelPanel" TargetType="Border">
+            <Setter Property="Background" Value="#C0C0C0"/>
+            <Setter Property="BorderBrush" Value="#808080"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <!-- Styl jednotlivé dlaždice -->
+        <Style x:Key="TileButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Background" Value="#C0C0C0"/>
+            <Setter Property="BorderBrush" Value="#7E7E7E"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid SnapsToDevicePixels="True">
+                            <Border x:Name="Outer"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1">
+                                <Border>
+                                    <Border.BorderBrush>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FFFFFF" Offset="0"/>
+                                            <GradientStop Color="#B0B0B0" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.BorderBrush>
+                                    <Border.BorderThickness>2</Border.BorderThickness>
+
+                                    <Border>
+                                        <Border.BorderBrush>
+                                            <LinearGradientBrush StartPoint="1,1" EndPoint="0,0">
+                                                <GradientStop Color="#808080" Offset="0"/>
+                                                <GradientStop Color="#E6E6E6" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.BorderBrush>
+                                        <Border.BorderThickness>2</Border.BorderThickness>
+
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                </Border>
+                            </Border>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Outer" Property="Background" Value="#B8B8B8"/>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Barvy čísel 1-8 -->
+        <Style x:Key="NumberTextStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding AdjacentMines}" Value="1">
+                    <Setter Property="Foreground" Value="#0000FF"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AdjacentMines}" Value="2">
+                    <Setter Property="Foreground" Value="#008000"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AdjacentMines}" Value="3">
+                    <Setter Property="Foreground" Value="#FF0000"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AdjacentMines}" Value="4">
+                    <Setter Property="Foreground" Value="#000080"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AdjacentMines}" Value="5">
+                    <Setter Property="Foreground" Value="#800000"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AdjacentMines}" Value="6">
+                    <Setter Property="Foreground" Value="#008080"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AdjacentMines}" Value="7">
+                    <Setter Property="Foreground" Value="#000000"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AdjacentMines}" Value="8">
+                    <Setter Property="Foreground" Value="#808080"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource BevelPanel}" Padding="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Vlevo nahoe, kolik zbývá bomb -->
+                <Border Style="{StaticResource CounterBox}">
+                    <TextBlock Style="{StaticResource CounterText}"
+                               Text="{Binding MinesLeft, StringFormat={}{0:000}}"/>
+                </Border>
+
+                <!-- Reset pomocí toho smajlíka -->
+                <Button Width="48" Height="48" Command="{Binding ResetCommand}" Grid.Column="1" Margin="202,0,202,0">
+                    <Image Source="Assets/smile.png" Stretch="None"/>
+                </Button>
+
+                <!-- Timer -->
+                <Border Grid.Column="2" Style="{StaticResource CounterBox}">
+                    <TextBlock Style="{StaticResource CounterText}"
+                               Text="{Binding TimeSeconds, StringFormat={}{0:000}}"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource BevelPanel}" Padding="8">
+            <ItemsControl ItemsSource="{Binding Tiles}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="{Binding Rows}"
+                                     Columns="{Binding Columns}"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+
+                        <Button Style="{StaticResource TileButtonStyle}"
+                                Command="{Binding DataContext.TileLeftClickCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}">
+                            <Button.Content>
+                                <Grid>
+                                    <TextBlock x:Name="Text"
+                                               Style="{StaticResource NumberTextStyle}"
+                                               Text="{Binding AdjacentMines}"
+                                               Visibility="Collapsed"/>
+
+                                    <TextBlock x:Name="Flag"
+                                               Text="🚩"
+                                               FontSize="14"
+                                               Visibility="Collapsed"/>
+
+                                    <TextBlock x:Name="Mine"
+                                               Text="💣"
+                                               FontSize="14"
+                                               Visibility="Collapsed"/>
+                                </Grid>
+                            </Button.Content>
+
+                            <!-- Pravý klik myši je napojený přímo na ICommand ve ViewModel pro tebe -->
+                            <Button.InputBindings>
+                                <MouseBinding MouseAction="RightClick"
+                                              Command="{Binding DataContext.TileRightClickCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}" />
+                            </Button.InputBindings>
+                        </Button>
+
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsFlagged}" Value="True">
+                                <Setter TargetName="Flag" Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsRevealed}" Value="True"/>
+                                    <Condition Binding="{Binding IsMine}" Value="False"/>
+                                    <Condition Binding="{Binding AdjacentMines}" Value="0"/>
+                                </MultiDataTrigger.Conditions>
+                            </MultiDataTrigger>
+
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsRevealed}" Value="True"/>
+                                    <Condition Binding="{Binding IsMine}" Value="False"/>
+                                    <Condition Binding="{Binding AdjacentMines}" Value="1"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Text" Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+
+                            <!-- Odhalená bomba -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsRevealed}" Value="True"/>
+                                    <Condition Binding="{Binding IsMine}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Mine" Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+
+                            <DataTrigger Binding="{Binding IsRevealed}" Value="True">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
     </Grid>
 </Window>
+
