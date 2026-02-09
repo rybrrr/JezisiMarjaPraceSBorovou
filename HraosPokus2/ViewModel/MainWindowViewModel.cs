@@ -1,173 +1,157 @@
-﻿using HraosPokus2.Model;
-using HraosPokus2.MVVM;
-using System;
-using System.Collections.Generic;
+﻿using HraosPokus2.MVVM;
+using HraosPokus2.Model;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Shapes;
+using System.Windows.Threading;
+
 
 namespace HraosPokus2.ViewModel
 {
-    internal class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : ViewModelBase
     {
+        public ObservableCollection<TileViewModel> Tiles { get; } = new();
+
+        public int Rows { get; } = 16;
+        public int Columns { get; } = 16;
+        public int MineCount { get; } = 40;
+
+        private int _timeSeconds;
+        public int TimeSeconds
+        {
+            get => _timeSeconds;
+            set { _timeSeconds = value; OnPropertyChanged(); }
+        }
+
+        private int _minesLeft;
+        public int MinesLeft
+        {
+            get => _minesLeft;
+            set { _minesLeft = value; OnPropertyChanged(); }
+        }
+
+        private readonly DispatcherTimer _timer;
+        private readonly Random _rng = new();
+
+        public RelayCommand ResetCommand { get; }
+        public RelayCommand TileLeftClickCommand { get; }
+        public RelayCommand TileRightClickCommand { get; }
+
         public MainWindowViewModel()
         {
-            Fields = new ObservableCollection<FieldViewModel>();
+            ResetCommand = new RelayCommand(_ => NewGame());
+            TileLeftClickCommand = new RelayCommand(t => Reveal(t as TileViewModel));
+            TileRightClickCommand = new RelayCommand(t => Flag(t as TileViewModel));
+
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _timer.Tick += (_, __) => TimeSeconds++;
+
+            NewGame();
         }
 
-        private static readonly Random Rng = new Random();
-
-        public RelayCommand StartCommand => new RelayCommand(execute => NewGame());
-        public RelayCommand FieldOpenCommand => new RelayCommand(execute => FieldOpened(execute as FieldViewModel));
-        public RelayCommand FieldFlaggedCommand => new RelayCommand(execute => FieldFlagged(execute as FieldViewModel));
-
-        #region Data Binding
-        public ObservableCollection<FieldViewModel> Fields { get; set; }
-
-        public int GridSize => (int)Math.Sqrt(Fields.Count);
-
-        private int _score;
-        public int Score
+        private void NewGame()
         {
-            get => _score;
-            set
+            _timer.Stop();
+
+            Tiles.Clear();
+            TimeSeconds = 0;
+            MinesLeft = MineCount;
+
+            for (int i = 0; i < Rows * Columns; i++)
+                Tiles.Add(new TileViewModel(new Tile()));
+
+            PlaceMines();
+            CalculateNumbers();
+
+            foreach (var t in Tiles)
+                t.Refresh();
+
+            _timer.Start();
+        }
+
+        private void PlaceMines()
+        {
+            int placed = 0;
+            while (placed < MineCount)
             {
-                if (_score != value)
+                int i = _rng.Next(Tiles.Count);
+                if (!Tiles[i].Model.IsMine)
                 {
-                    _score = value;
-                    OnPropertyChanged();
+                    Tiles[i].Model.IsMine = true;
+                    placed++;
                 }
             }
         }
 
-        #endregion
-
-        #region Herní logika
-
-        public void NewGame()
+        private void CalculateNumbers()
         {
-            ReassignMines(Fields.Count / 8);
-            SetNeighboringMineCounts();
-        }
-
-        private int GetNeighboringMines(int field)
-        {
-            int x = field % GridSize;
-            int y = field / GridSize;
-
-            int mines = 0;
-
-            foreach ((int dx, int dy) in Field.NeighborOffsets)
+            for (int i = 0; i < Tiles.Count; i++)
             {
-                int newX = x + dx;
-                int newY = y + dy;
+                if (Tiles[i].Model.IsMine) continue;
 
-                if (newX < 0 || newX >= GridSize ||
-                    newY < 0 || newY >= GridSize)
-                    continue;   // Out of bounds
+                int count = 0;
+                foreach (var n in GetNeighbors(i))
+                    if (Tiles[n].Model.IsMine) count++;
 
-                int pos = newY * GridSize + newX;
-                if (Fields[pos].IsMine)
-                    mines++;
+                Tiles[i].Model.AdjacentMines = count;
             }
 
-            return mines;
+            foreach (var t in Tiles)
+                t.Refresh();
         }
 
-        private bool AreAllPossibleFieldsOpen()
+        private IEnumerable<int> GetNeighbors(int index)
         {
-            foreach (FieldViewModel field in Fields)
-                if (!field.IsMine && !field.IsOpened)
-                    return false;
+            int x = index % Columns;
+            int y = index / Columns;
 
-            return true;
-        }
-
-        private void ReassignMines(int mineCount)
-        {
-            IEnumerable<int> newMinesArray = Randomization<int>.PickDistinct(Fields.Count, mineCount);
-            
-            // Remove mines
-            foreach (FieldViewModel field in Fields)
-                field.Model.IsMine = false;
-
-            // Reassign mines
-            foreach (int mine in newMinesArray)
-                Fields[mine].Model.IsMine = true;
-        }
-
-        private void SetNeighboringMineCounts()
-        {
-            for (int i = 0; i < Fields.Count; i++)
-                Fields[i].Model.NeighboringMines = GetNeighboringMines(i);
-        }
-
-        private void OpenAllMineFreeFields(int start)
-        {
-            int x = start % GridSize;
-            int y = start / GridSize;
-
-            Queue<int> waiting = new Queue<int>();
-            HashSet<int> opened = new HashSet<int>() { start };
-
-            waiting.Enqueue(start);
-            while (waiting.Count > 0)
-            {
-                int field = waiting.Dequeue();
-                foreach ((int dx, int dy) in Field.NeighborOffsets)
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
                 {
-                    int newX = x + dx;
-                    int newY = y + dy;
-                    int pos = newY * GridSize + newX;
+                    if (dx == 0 && dy == 0) continue;
 
-                    if (newX < 0 || newX >= GridSize ||
-                        newY < 0 || newY >= GridSize)
-                        continue;   // Out of bounds
+                    int nx = x + dx;
+                    int ny = y + dy;
 
-                    if (opened.Contains(pos))
-                        continue;   // Already checked
-
-                    FieldViewModel fieldViewModel = Fields[pos];
-
-                    if (!fieldViewModel.IsMine)
-                    {
-                        fieldViewModel.IsOpened = true;
-                        waiting.Enqueue(pos);
-                    }
-                    
-                    opened.Add(pos);
+                    if (nx >= 0 && ny >= 0 && nx < Columns && ny < Rows)
+                        yield return ny * Columns + nx;
                 }
+        }
+
+        private void Reveal(TileViewModel tile)
+        {
+            if (tile == null || tile.IsFlagged || tile.IsRevealed)
+                return;
+
+            tile.IsRevealed = true;
+            tile.Refresh();
+
+            if (tile.IsMine)
+            {
+                foreach (var t in Tiles)
+                {
+                    t.IsRevealed = true;
+                    t.Refresh();
+                }
+                _timer.Stop();
+                return;
+            }
+
+            if (tile.AdjacentMines == 0)
+            {
+                int index = Tiles.IndexOf(tile);
+                foreach (var n in GetNeighbors(index))
+                    Reveal(Tiles[n]);
             }
         }
 
-        private void OpenAllFields()
+        private void Flag(TileViewModel tile)
         {
-            for (int i = 0; i < Fields.Count; i++)
-                Fields[i].IsOpened = true;
+            if (tile == null || tile.IsRevealed)
+                return;
+
+            tile.IsFlagged = !tile.IsFlagged;
+            tile.Refresh();
+
+            MinesLeft += tile.IsFlagged ? -1 : 1;
         }
-
-        private void FieldOpened(FieldViewModel field)
-        {
-            if (field.IsOpened)
-                return; // Already opened
-
-            if (field.Model.IsMine)
-                OpenAllFields();    // Lose
-
-            OpenAllMineFreeFields(Fields.IndexOf(field));
-
-            if (AreAllPossibleFieldsOpen())
-                OpenAllFields();    // Win
-        }
-
-        private void FieldFlagged(FieldViewModel field)
-        {
-            field.IsFlagged = !field.IsFlagged;
-        }
-
-        #endregion
     }
 }

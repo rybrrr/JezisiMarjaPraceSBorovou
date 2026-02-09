@@ -16,7 +16,6 @@ namespace HraosPokus2.ViewModel
             Model = field;
         }
 
-        // databindingované vlastnosti:
 
         private bool _isOpened;
         public bool IsOpened
