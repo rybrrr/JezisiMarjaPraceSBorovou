@@ -7,7 +7,6 @@
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
-        <!-- Ve VievModel udělej tyto commandy: MinesLeft, TimeSeconds, Rows, Columns, Tiles, ResetCommand, TileLeftClickCommand, TileRightClickCommand -->
 
         <Style x:Key="CounterText" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Consolas"/>
@@ -145,7 +144,7 @@
                 <!-- Vlevo nahore, kolik zbývá bomb -->
                 <Border Style="{StaticResource CounterBox}">
                     <TextBlock Style="{StaticResource CounterText}"
-                               Text="{Binding MinesLeft, StringFormat={}{0:000}}"/>
+                               Text="{Binding MinesLeft, StringFormat={}{0:000}}" Foreground="#FFFF3333"/>
                 </Border>
 
                 <!-- Reset pomocí toho smajlíka -->
@@ -157,7 +156,7 @@
                 <!-- Timer -->
                 <Border Grid.Column="2" Style="{StaticResource CounterBox}">
                     <TextBlock Style="{StaticResource CounterText}"
-                               Text="{Binding TimeSeconds, StringFormat={}{0:000}}"/>
+                               Text="{Binding TimeSeconds, StringFormat={}{0:000}}" Foreground="#FFFF3333"/>
                 </Border>
             </Grid>
         </Border>
